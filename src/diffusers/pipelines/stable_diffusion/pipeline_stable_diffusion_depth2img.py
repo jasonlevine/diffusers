@@ -343,7 +343,7 @@ class StableDiffusionDepth2ImgPipeline(DiffusionPipeline):
         return timesteps, num_inference_steps - t_start
 
     # Copied from diffusers.pipelines.stable_diffusion.pipeline_stable_diffusion_img2img.StableDiffusionImg2ImgPipeline.prepare_latents
-    def prepare_latents(self, image, timestep, batch_size, num_images_per_prompt, dtype, device, generator=None):
+    def prepare_latents(self, image, timestep, batch_size, num_images_per_prompt, dtype, device, generator=None, noise=None):
         image = image.to(device=device, dtype=dtype)
         init_latent_dist = self.vae.encode(image).latent_dist
         init_latents = init_latent_dist.sample(generator=generator)
@@ -368,7 +368,8 @@ class StableDiffusionDepth2ImgPipeline(DiffusionPipeline):
             init_latents = torch.cat([init_latents] * num_images_per_prompt, dim=0)
 
         # add noise to latents using the timesteps
-        noise = torch.randn(init_latents.shape, generator=generator, device=device, dtype=dtype)
+        if noise == None:
+            noise = torch.randn(init_latents.shape, generator=generator, device=device, dtype=dtype)
 
         # get latents
         init_latents = self.scheduler.add_noise(init_latents, noise, timestep)
@@ -423,6 +424,7 @@ class StableDiffusionDepth2ImgPipeline(DiffusionPipeline):
         prompt: Union[str, List[str]],
         image: Union[torch.FloatTensor, PIL.Image.Image],
         depth_map: Optional[torch.FloatTensor] = None,
+        noise: None,
         strength: float = 0.8,
         num_inference_steps: Optional[int] = 50,
         guidance_scale: Optional[float] = 7.5,
@@ -526,7 +528,7 @@ class StableDiffusionDepth2ImgPipeline(DiffusionPipeline):
 
         # 7. Prepare latent variables
         latents = self.prepare_latents(
-            image, latent_timestep, batch_size, num_images_per_prompt, text_embeddings.dtype, device, generator
+            image, latent_timestep, batch_size, num_images_per_prompt, text_embeddings.dtype, device, generator, noise
         )
 
         # 8. Prepare extra step kwargs. TODO: Logic should ideally just be moved out of the pipeline
